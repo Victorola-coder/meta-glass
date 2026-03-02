@@ -12,7 +12,6 @@ class WearableSDKMock {
   private onButtonPressCallback: ButtonPressCallback | null = null;
   private onConnectionChangeCallback: ConnectionChangeCallback | null = null;
 
-  // Simulate connecting to the smart glasses
   connect(): Promise<void> {
     return new Promise((resolve) => {
       setTimeout(() => {
@@ -21,11 +20,10 @@ class WearableSDKMock {
           this.onConnectionChangeCallback(true);
         }
         resolve();
-      }, 1000); // 1-second simulated delay for Bluetooth/Wi-Fi connection
+      }, 1000);
     });
   }
 
-  // Simulate disconnecting from the smart glasses
   disconnect(): void {
     this.isConnected = false;
     if (this.onConnectionChangeCallback) {
@@ -33,24 +31,20 @@ class WearableSDKMock {
     }
   }
 
-  // Register a listener for physical hardware button presses on the glasses
   onButtonPress(callback: ButtonPressCallback): void {
     this.onButtonPressCallback = callback;
   }
 
-  // Register a listener for connection state changes
   onConnectionChange(callback: ConnectionChangeCallback): void {
     this.onConnectionChangeCallback = callback;
   }
 
-  // Simulate pushing an update to the user's HUD
   sendHUDUpdate(message: string): Promise<void> {
     return new Promise((resolve, reject) => {
       if (!this.isConnected) {
         reject(new Error("Cannot send HUD update: Glasses are not connected."));
         return;
       }
-      // Simulate network/Bluetooth latency
       setTimeout(() => {
         console.log(`[Wearable HUD]: ${message}`);
         resolve();
@@ -59,9 +53,6 @@ class WearableSDKMock {
   }
 
   // ==== MOCK HELPER METHODS (For testing without physical hardware) ====
-
-  // This method simulates a user physically pressing the button on the glasses.
-  // In a real app, this would be triggered by a Bluetooth broadcast receiver.
   simulateHardwareButtonPress(): void {
     if (!this.isConnected) {
       console.warn("Attempted to press button while glasses are disconnected.");
@@ -73,5 +64,4 @@ class WearableSDKMock {
   }
 }
 
-// Export a singleton instance
 export const wearableSDK = new WearableSDKMock();
