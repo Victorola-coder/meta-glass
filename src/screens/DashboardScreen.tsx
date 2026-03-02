@@ -1,18 +1,28 @@
-import { StatusBar } from 'expo-status-bar';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useWearableEventLog } from '../hooks/useWearableEventLog';
 import { Colors } from '../theme/colors';
+import { StatusBar } from 'expo-status-bar';
 import { wearableBridge } from '../wearable';
+import { useWearableEventLog } from '../hooks/useWearableEventLog';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { WearableTriggerType } from '../wearable/WearableBridge';
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 function sleep(ms: number, signal: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => resolve(), ms);
     const onAbort = () => {
       clearTimeout(timeout);
       reject(new Error('aborted'));
     };
+
+    const timeout = setTimeout(() => {
+      signal.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+
+    if (signal.aborted) {
+      onAbort();
+      return;
+    }
+
     signal.addEventListener('abort', onAbort, { once: true });
   });
 }
@@ -22,6 +32,7 @@ export default function DashboardScreen() {
 
   const [phoneStatus, setPhoneStatus] = useState<string>('Idle');
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const isProcessingRef = useRef<boolean>(false);
   const lastTriggerIdRef = useRef<string | null>(null);
   const processorAbortRef = useRef<AbortController | null>(null);
 
@@ -44,6 +55,10 @@ export default function DashboardScreen() {
   }, [connectionState]);
 
   useEffect(() => {
+    isProcessingRef.current = isProcessing;
+  }, [isProcessing]);
+
+  useEffect(() => {
     const latestTrigger = [...events].reverse().find((e) => e.type === 'trigger');
     if (!latestTrigger) return;
     if (lastTriggerIdRef.current === latestTrigger.triggerId) return;
@@ -56,7 +71,6 @@ export default function DashboardScreen() {
     processorAbortRef.current = abortController;
 
     const process = async (triggerType: WearableTriggerType, triggerId: string) => {
-      if (isProcessing) return;
       setIsProcessing(true);
       try {
         setPhoneStatus(`Trigger received (${triggerType}). Processing...`);
@@ -77,8 +91,12 @@ export default function DashboardScreen() {
       }
     };
 
+    // If we’re already processing, we cancel the in-flight job (above) and
+    // process only the latest trigger.
+    if (isProcessingRef.current) {
+      // Fall through: starting `process()` will run the latest deterministic job.
+    }
     void process(latestTrigger.triggerType, latestTrigger.triggerId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [events]);
 
   useEffect(() => {
@@ -106,7 +124,7 @@ export default function DashboardScreen() {
   const canTrigger = connectionState === 'connected' && !isProcessing;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar style="light" backgroundColor={Colors.background} />
 
       {/* PHONE UI SECTION */}
@@ -191,12 +209,12 @@ export default function DashboardScreen() {
               disabled={!canTrigger}
               activeOpacity={0.7}
             >
-              <Text style={styles.btnTextHardware}>Gesture</Text>
+              <Text style={[styles.btnTextHardware, styles.btnTextHardwareAlt]}>Gesture</Text>
             </TouchableOpacity>
           </View>
         </View>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -384,6 +402,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '900',
     letterSpacing: 0.2,
+  },
+  btnTextHardwareAlt: {
+    color: Colors.warning,
   },
   btnDisabled: {
     opacity: 0.4,
