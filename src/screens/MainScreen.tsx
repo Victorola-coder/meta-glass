@@ -11,50 +11,53 @@ export default function MainScreen() {
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
-    wearableSDK.onConnectionChange((connected) => {
-      setIsConnected(connected);
-      if (connected) {
+    switch (connectionState) {
+      case 'connected':
         setPhoneStatus('Connected to Glasses');
-        setHudMessage('Ready');
-      } else {
+        break;
+      case 'connecting':
+        setPhoneStatus('Connecting...');
+        break;
+      case 'disconnected':
         setPhoneStatus('Disconnected');
-        setHudMessage('Connection Lost');
-      }
-    });
+        break;
+    }
+  }, [connectionState]);
 
-    wearableSDK.onButtonPress(() => {
+  useEffect(() => {
+    if (events.length === 0) return;
+    const lastEvent = events[events.length - 1];
+    
+    if (lastEvent.type === 'trigger' && lastEvent.triggerType === 'button') {
       setPhoneStatus('Trigger Received! Processing...');
       setIsProcessing(true);
       
       setTimeout(() => {
         setPhoneStatus('Processing complete. Pushing to HUD...');
         
-        wearableSDK.sendHUDUpdate('Action Confirmed ✓').then(() => {
-          setHudMessage('Action Confirmed ✓');
+        wearableBridge.sendHudMessage('Action Confirmed ✓').then(() => {
           setPhoneStatus('Idle');
           setIsProcessing(false);
-          
-          setTimeout(() => {
-            if (isConnected) setHudMessage('Ready');
-          }, 3000);
+        }).catch((err) => {
+           setPhoneStatus('Failed to update HUD.');
+           setIsProcessing(false);
+           console.error(err);
         });
       }, 1500);
-    });
-  }, [isConnected]);
+    }
+  }, [events]);
 
   const handleConnect = async () => {
-    setPhoneStatus('Connecting...');
-    setHudMessage('Pairing...');
-    await wearableSDK.connect();
+    await wearableBridge.connect();
   };
 
   const handleDisconnect = () => {
-    wearableSDK.disconnect();
+    wearableBridge.disconnect();
   };
 
   const handleSimulateHardwareTrigger = () => {
     if (!isConnected || isProcessing) return;
-    wearableSDK.simulateHardwareButtonPress();
+    wearableBridge.simulateTrigger('button');
   };
 
   return (
@@ -103,7 +106,7 @@ export default function MainScreen() {
         </View>
 
         <View style={styles.hudScreen}>
-          <Text style={styles.hudText}>{hudMessage}</Text>
+          <Text style={styles.hudText}>{latestHudMessage || (isConnected ? 'Ready' : 'Waiting for connection...')}</Text>
         </View>
 
         <View style={styles.glassHardwareCard}>
