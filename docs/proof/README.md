@@ -1,12 +1,4 @@
-## Proof artifacts
+Put demo video or screenshots here and link them from the main README.
 
-Drop your demo video / screenshots in this folder and reference them from the repository `README.md`.
-
-Suggested filenames:
-
-- `demo.gif` (or `demo.mp4`)
-- `01-dashboard-connected.png`
-- `02-trigger-processing.png`
-- `03-hud-confirmation.png`
-- `04-event-log.png`
+e.g. `demo.gif`, `01-dashboard.png`, `02-trigger.png`, `03-hud.png`, `04-events.png`
 

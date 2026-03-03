@@ -64,19 +64,16 @@ export class MockWearableBridge implements WearableBridge {
     if (this.connectionState !== 'connected') {
       this.emit({
         type: 'error',
-        message: 'Cannot push HUD message: glasses not connected.',
+        message: 'Glasses not connected.',
         atMs: nowMs(),
         context: { bridge: this.name },
       });
-      throw new Error('Glasses are not connected.');
+      throw new Error('Glasses not connected.');
     }
 
     await new Promise<void>((resolve) => {
       setTimeout(() => resolve(), this.timings.hudPushMs);
     });
-
-    // In a real SDK this would be a device display primitive; for the mock it is
-    // an event that the HUD panel can listen to.
     this.emit({ type: 'hud', message, atMs: nowMs() });
   }
 
@@ -84,7 +81,7 @@ export class MockWearableBridge implements WearableBridge {
     if (this.connectionState !== 'connected') {
       this.emit({
         type: 'error',
-        message: 'Trigger ignored: glasses not connected.',
+        message: 'Glasses not connected.',
         atMs: nowMs(),
         context: { triggerType },
       });

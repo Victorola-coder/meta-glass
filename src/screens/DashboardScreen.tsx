@@ -64,8 +64,6 @@ export default function DashboardScreen() {
     if (lastTriggerIdRef.current === latestTrigger.triggerId) return;
     lastTriggerIdRef.current = latestTrigger.triggerId;
 
-    // Cancel any in-flight processing. Real apps might queue instead; for a POC
-    // we keep it deterministic.
     processorAbortRef.current?.abort();
     const abortController = new AbortController();
     processorAbortRef.current = abortController;
@@ -91,11 +89,6 @@ export default function DashboardScreen() {
       }
     };
 
-    // If we’re already processing, we cancel the in-flight job (above) and
-    // process only the latest trigger.
-    if (isProcessingRef.current) {
-      // Fall through: starting `process()` will run the latest deterministic job.
-    }
     void process(latestTrigger.triggerType, latestTrigger.triggerId);
   }, [events]);
 

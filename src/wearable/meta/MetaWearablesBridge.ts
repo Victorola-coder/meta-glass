@@ -28,16 +28,13 @@ export class MetaWearablesBridge implements WearableBridge {
   }
 
   public async connect(): Promise<void> {
-    // Intentionally a stub: wiring this requires a native module + vendor SDK,
-    // which is not included in this POC repo.
     this.emit({
       type: 'error',
-      message:
-        'MetaWearablesBridge is not wired. Use the mock bridge or add a native module binding to the Meta Wearables Device Access Toolkit.',
+      message: 'Meta bridge not wired yet. Use mock or plug in the real SDK.',
       atMs: nowMs(),
       context: { bridge: this.name },
     });
-    throw new Error('MetaWearablesBridge is not implemented in this POC.');
+    throw new Error('Not implemented.');
   }
 
   public disconnect(): void {
@@ -48,22 +45,20 @@ export class MetaWearablesBridge implements WearableBridge {
   public async sendHudMessage(_message: string): Promise<void> {
     this.emit({
       type: 'error',
-      message:
-        'sendHudMessage is not wired. Add vendor SDK display primitives here.',
+      message: 'HUD not wired.',
       atMs: nowMs(),
       context: { bridge: this.name },
     });
-    throw new Error('MetaWearablesBridge is not implemented in this POC.');
+    throw new Error('Not implemented.');
   }
 
   public simulateTrigger(triggerType: WearableTriggerType): void {
-    const event: WearableEvent = {
+    this.emit({
       type: 'error',
-      message: 'simulateTrigger is mock-only and not available on MetaWearablesBridge.',
+      message: 'Simulate is mock-only.',
       atMs: nowMs(),
       context: { bridge: this.name, triggerType },
-    };
-    this.emit(event);
+    });
   }
 
   private emit(event: WearableEvent): void {

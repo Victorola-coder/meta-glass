@@ -38,14 +38,8 @@ export interface WearableBridge {
 
   sendHudMessage(message: string): Promise<void>;
 
-  /**
-   * MOCK ONLY. Emits a trigger event as if it was received from the glasses.
-   */
   simulateTrigger(triggerType: WearableTriggerType): void;
 
-  /**
-   * Subscribe to all wearable events (connection, triggers, HUD pushes, errors).
-   */
   onEvent(listener: WearableEventListener): WearableUnsubscribe;
 }
 
