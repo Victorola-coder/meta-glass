@@ -1,8 +1,10 @@
 import React, { useMemo } from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
-import { useWearableEventLog } from '../hooks/useWearableEventLog';
+import type { WearableDerivedState } from '../hooks/useWearableEventLog';
 import { Colors } from '../theme/colors';
 import type { WearableEvent } from '../wearable/WearableBridge';
+
+type Props = { wearableState: WearableDerivedState };
 
 function formatTime(ms: number): string {
   const d = new Date(ms);
@@ -38,8 +40,8 @@ function detailForEvent(event: WearableEvent): string {
   }
 }
 
-export default function EventLogScreen() {
-  const { bridgeName, events } = useWearableEventLog();
+export default function EventLogScreen({ wearableState }: Props) {
+  const { bridgeName, events } = wearableState;
   const data = useMemo(() => [...events].reverse(), [events]);
 
   return (

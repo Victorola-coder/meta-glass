@@ -1,10 +1,12 @@
 import { Colors } from '../theme/colors';
 import { StatusBar } from 'expo-status-bar';
 import { wearableBridge } from '../wearable';
-import { useWearableEventLog } from '../hooks/useWearableEventLog';
+import type { WearableDerivedState } from '../hooks/useWearableEventLog';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { WearableTriggerType } from '../wearable/WearableBridge';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+
+type Props = { wearableState: WearableDerivedState };
 
 function sleep(ms: number, signal: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -27,8 +29,8 @@ function sleep(ms: number, signal: AbortSignal): Promise<void> {
   });
 }
 
-export default function DashboardScreen() {
-  const { bridgeName, connectionState, latestHudMessage, events } = useWearableEventLog();
+export default function DashboardScreen({ wearableState }: Props) {
+  const { bridgeName, connectionState, latestHudMessage, events } = wearableState;
 
   const [phoneStatus, setPhoneStatus] = useState<string>('Idle');
   const [isProcessing, setIsProcessing] = useState<boolean>(false);

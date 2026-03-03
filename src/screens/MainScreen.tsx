@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useWearableEventLog } from '../hooks/useWearableEventLog';
 import { Colors } from '../theme/colors';
 import DashboardScreen from './DashboardScreen';
 import EventLogScreen from './EventLogScreen';
@@ -8,6 +9,7 @@ type Tab = 'dashboard' | 'log';
 
 export default function MainScreen() {
   const [tab, setTab] = useState<Tab>('dashboard');
+  const wearableState = useWearableEventLog();
 
   return (
     <SafeAreaView style={styles.container}>
@@ -28,7 +30,13 @@ export default function MainScreen() {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.content}>{tab === 'dashboard' ? <DashboardScreen /> : <EventLogScreen />}</View>
+      <View style={styles.content}>
+        {tab === 'dashboard' ? (
+          <DashboardScreen wearableState={wearableState} />
+        ) : (
+          <EventLogScreen wearableState={wearableState} />
+        )}
+      </View>
     </SafeAreaView>
   );
 }
