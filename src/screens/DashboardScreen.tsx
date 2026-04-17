@@ -3,10 +3,21 @@ import { StatusBar } from 'expo-status-bar';
 import { wearableBridge } from '../wearable';
 import type { WearableDerivedState } from '../hooks/useWearableEventLog';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import type { WearableTriggerType } from '../wearable/WearableBridge';
+import type {
+  WearableSimulatedDevice,
+  WearableSimulatorConfig,
+  WearableTriggerType,
+} from '../wearable/WearableBridge';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 type Props = { wearableState: WearableDerivedState };
+
+const defaultSimulatorConfig: WearableSimulatorConfig = {
+  connectMs: 900,
+  hudPushMs: 450,
+  jitterMs: 140,
+  dropRate: 0.07,
+};
 
 function sleep(ms: number, signal: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -31,9 +42,20 @@ function sleep(ms: number, signal: AbortSignal): Promise<void> {
 
 export default function DashboardScreen({ wearableState }: Props) {
   const { bridgeName, connectionState, latestHudMessage, events } = wearableState;
+  const isSimulator = typeof wearableBridge.getSimulatorConfig === 'function';
 
   const [phoneStatus, setPhoneStatus] = useState<string>('Idle');
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [simConfig, setSimConfig] = useState<WearableSimulatorConfig>(
+    wearableBridge.getSimulatorConfig?.() ?? defaultSimulatorConfig,
+  );
+  const [simDevices, setSimDevices] = useState<readonly WearableSimulatedDevice[]>(
+    wearableBridge.listSimulatedDevices?.() ?? [],
+  );
+  const [activeSimDeviceId, setActiveSimDeviceId] = useState<string | null>(
+    wearableBridge.getActiveSimulatedDeviceId?.() ?? null,
+  );
+  const [switchingDeviceId, setSwitchingDeviceId] = useState<string | null>(null);
   const isProcessingRef = useRef<boolean>(false);
   const lastTriggerIdRef = useRef<string | null>(null);
   const processorAbortRef = useRef<AbortController | null>(null);
@@ -100,6 +122,16 @@ export default function DashboardScreen({ wearableState }: Props) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!isSimulator) return;
+    const tick = setInterval(() => {
+      setSimConfig(wearableBridge.getSimulatorConfig?.() ?? defaultSimulatorConfig);
+      setSimDevices(wearableBridge.listSimulatedDevices?.() ?? []);
+      setActiveSimDeviceId(wearableBridge.getActiveSimulatedDeviceId?.() ?? null);
+    }, 600);
+    return () => clearInterval(tick);
+  }, [isSimulator]);
+
   const handleConnect = async () => {
     try {
       await wearableBridge.connect();
@@ -114,6 +146,39 @@ export default function DashboardScreen({ wearableState }: Props) {
 
   const handleSimulateTrigger = (triggerType: WearableTriggerType) => {
     wearableBridge.simulateTrigger(triggerType);
+  };
+
+  const updateSimulatorConfig = (patch: Partial<WearableSimulatorConfig>) => {
+    wearableBridge.configureSimulator?.(patch);
+    setSimConfig(wearableBridge.getSimulatorConfig?.() ?? defaultSimulatorConfig);
+  };
+
+  const adjustConnectMs = (delta: number) => {
+    updateSimulatorConfig({ connectMs: Math.max(0, simConfig.connectMs + delta) });
+  };
+
+  const adjustHudMs = (delta: number) => {
+    updateSimulatorConfig({ hudPushMs: Math.max(0, simConfig.hudPushMs + delta) });
+  };
+
+  const adjustJitterMs = (delta: number) => {
+    updateSimulatorConfig({ jitterMs: Math.max(0, simConfig.jitterMs + delta) });
+  };
+
+  const adjustDropRate = (deltaPercent: number) => {
+    const next = Math.min(95, Math.max(0, Math.round(simConfig.dropRate * 100) + deltaPercent)) / 100;
+    updateSimulatorConfig({ dropRate: next });
+  };
+
+  const handleSwitchDevice = async (deviceId: string) => {
+    if (!wearableBridge.switchSimulatedDevice) return;
+    setSwitchingDeviceId(deviceId);
+    const switched = await wearableBridge.switchSimulatedDevice(deviceId);
+    if (switched) {
+      setActiveSimDeviceId(wearableBridge.getActiveSimulatedDeviceId?.() ?? null);
+      setSimDevices(wearableBridge.listSimulatedDevices?.() ?? []);
+    }
+    setSwitchingDeviceId(null);
   };
 
   const canTrigger = connectionState === 'connected' && !isProcessing;
@@ -160,6 +225,89 @@ export default function DashboardScreen({ wearableState }: Props) {
             {isProcessing && <ActivityIndicator size="small" color={Colors.primary} style={{ marginLeft: 8 }} />}
           </View>
         </View>
+
+        {isSimulator ? (
+          <View style={styles.card}>
+            <Text style={styles.label}>Simulator Controls</Text>
+            <Text style={styles.simulatorHint}>
+              Tune connection conditions to test real-time behavior and resilience.
+            </Text>
+
+            <View style={styles.metricRow}>
+              <Text style={styles.metricLabel}>Connect latency</Text>
+              <View style={styles.metricControls}>
+                <TouchableOpacity style={styles.metricBtn} onPress={() => adjustConnectMs(-100)}>
+                  <Text style={styles.metricBtnText}>-100</Text>
+                </TouchableOpacity>
+                <Text style={styles.metricValue}>{simConfig.connectMs}ms</Text>
+                <TouchableOpacity style={styles.metricBtn} onPress={() => adjustConnectMs(100)}>
+                  <Text style={styles.metricBtnText}>+100</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.metricRow}>
+              <Text style={styles.metricLabel}>HUD latency</Text>
+              <View style={styles.metricControls}>
+                <TouchableOpacity style={styles.metricBtn} onPress={() => adjustHudMs(-50)}>
+                  <Text style={styles.metricBtnText}>-50</Text>
+                </TouchableOpacity>
+                <Text style={styles.metricValue}>{simConfig.hudPushMs}ms</Text>
+                <TouchableOpacity style={styles.metricBtn} onPress={() => adjustHudMs(50)}>
+                  <Text style={styles.metricBtnText}>+50</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.metricRow}>
+              <Text style={styles.metricLabel}>Jitter</Text>
+              <View style={styles.metricControls}>
+                <TouchableOpacity style={styles.metricBtn} onPress={() => adjustJitterMs(-25)}>
+                  <Text style={styles.metricBtnText}>-25</Text>
+                </TouchableOpacity>
+                <Text style={styles.metricValue}>{simConfig.jitterMs}ms</Text>
+                <TouchableOpacity style={styles.metricBtn} onPress={() => adjustJitterMs(25)}>
+                  <Text style={styles.metricBtnText}>+25</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.metricRow}>
+              <Text style={styles.metricLabel}>Drop rate</Text>
+              <View style={styles.metricControls}>
+                <TouchableOpacity style={styles.metricBtn} onPress={() => adjustDropRate(-5)}>
+                  <Text style={styles.metricBtnText}>-5%</Text>
+                </TouchableOpacity>
+                <Text style={styles.metricValue}>{Math.round(simConfig.dropRate * 100)}%</Text>
+                <TouchableOpacity style={styles.metricBtn} onPress={() => adjustDropRate(5)}>
+                  <Text style={styles.metricBtnText}>+5%</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <Text style={[styles.metricLabel, { marginTop: 8, marginBottom: 8 }]}>Simulated devices</Text>
+            <View style={styles.deviceChipRow}>
+              {simDevices.map((device) => {
+                const active = activeSimDeviceId === device.id;
+                return (
+                  <TouchableOpacity
+                    key={device.id}
+                    style={[
+                      styles.deviceChip,
+                      active ? styles.deviceChipActive : undefined,
+                    ]}
+                    onPress={() => handleSwitchDevice(device.id)}
+                    disabled={switchingDeviceId != null}
+                  >
+                    <Text style={[styles.deviceChipText, active ? styles.deviceChipTextActive : undefined]}>
+                      {device.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        ) : null}
 
         {connectionState !== 'connected' ? (
           <TouchableOpacity style={[styles.button, styles.btnPrimary]} onPress={handleConnect}>

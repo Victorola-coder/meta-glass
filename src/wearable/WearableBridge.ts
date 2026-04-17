@@ -2,6 +2,19 @@ export type WearableConnectionState = 'disconnected' | 'connecting' | 'connected
 
 export type WearableTriggerType = 'button' | 'gesture';
 
+export type WearableSimulatorConfig = Readonly<{
+  connectMs: number;
+  hudPushMs: number;
+  jitterMs: number;
+  dropRate: number;
+}>;
+
+export type WearableSimulatedDevice = Readonly<{
+  id: string;
+  name: string;
+  status: 'connected' | 'inactive';
+}>;
+
 export type WearableEvent =
   | {
       type: 'connection';
@@ -39,6 +52,13 @@ export interface WearableBridge {
   sendHudMessage(message: string): Promise<void>;
 
   simulateTrigger(triggerType: WearableTriggerType): void;
+
+  /** Optional simulator controls (mock bridge only). */
+  getSimulatorConfig?(): WearableSimulatorConfig;
+  configureSimulator?(patch: Partial<WearableSimulatorConfig>): void;
+  listSimulatedDevices?(): readonly WearableSimulatedDevice[];
+  getActiveSimulatedDeviceId?(): string | null;
+  switchSimulatedDevice?(deviceId: string): Promise<boolean>;
 
   onEvent(listener: WearableEventListener): WearableUnsubscribe;
 }

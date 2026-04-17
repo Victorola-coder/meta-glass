@@ -15,7 +15,12 @@ function createBridge(kind: WearableBridgeKind): WearableBridge {
     case 'meta-wearables':
       return new MetaWearablesBridge();
     case 'mock':
-      return new MockWearableBridge();
+      return new MockWearableBridge({
+        connectMs: Number(process.env.EXPO_PUBLIC_SIM_CONNECT_MS ?? 900),
+        hudPushMs: Number(process.env.EXPO_PUBLIC_SIM_HUD_MS ?? 450),
+        jitterMs: Number(process.env.EXPO_PUBLIC_SIM_JITTER_MS ?? 140),
+        dropRate: Number(process.env.EXPO_PUBLIC_SIM_DROP_RATE ?? 0.07),
+      });
   }
 }
 
