@@ -19,6 +19,35 @@ const defaultSimulatorConfig: WearableSimulatorConfig = {
   dropRate: 0.07,
 };
 
+type SimulatorPreset = {
+  id: 'realtime' | 'normal' | 'poor-network' | 'chaos';
+  label: string;
+  config: WearableSimulatorConfig;
+};
+
+const simulatorPresets: readonly SimulatorPreset[] = [
+  {
+    id: 'realtime',
+    label: 'Realtime',
+    config: { connectMs: 0, hudPushMs: 0, jitterMs: 0, dropRate: 0 },
+  },
+  {
+    id: 'normal',
+    label: 'Normal',
+    config: { connectMs: 900, hudPushMs: 450, jitterMs: 140, dropRate: 0.07 },
+  },
+  {
+    id: 'poor-network',
+    label: 'Poor Network',
+    config: { connectMs: 1600, hudPushMs: 900, jitterMs: 350, dropRate: 0.22 },
+  },
+  {
+    id: 'chaos',
+    label: 'Chaos',
+    config: { connectMs: 2300, hudPushMs: 1400, jitterMs: 600, dropRate: 0.4 },
+  },
+];
+
 function sleep(ms: number, signal: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
     const onAbort = () => {
@@ -170,6 +199,19 @@ export default function DashboardScreen({ wearableState }: Props) {
     updateSimulatorConfig({ dropRate: next });
   };
 
+  const matchesPreset = (preset: WearableSimulatorConfig): boolean => {
+    return (
+      simConfig.connectMs === preset.connectMs &&
+      simConfig.hudPushMs === preset.hudPushMs &&
+      simConfig.jitterMs === preset.jitterMs &&
+      Math.round(simConfig.dropRate * 100) === Math.round(preset.dropRate * 100)
+    );
+  };
+
+  const applyPreset = (preset: WearableSimulatorConfig) => {
+    updateSimulatorConfig(preset);
+  };
+
   const handleSwitchDevice = async (deviceId: string) => {
     if (!wearableBridge.switchSimulatedDevice) return;
     setSwitchingDeviceId(deviceId);
@@ -306,6 +348,24 @@ export default function DashboardScreen({ wearableState }: Props) {
                 );
               })}
             </View>
+
+            <Text style={[styles.metricLabel, { marginTop: 12, marginBottom: 8 }]}>Presets</Text>
+            <View style={styles.presetRow}>
+              {simulatorPresets.map((preset) => {
+                const selected = matchesPreset(preset.config);
+                return (
+                  <TouchableOpacity
+                    key={preset.id}
+                    style={[styles.presetChip, selected ? styles.presetChipActive : undefined]}
+                    onPress={() => applyPreset(preset.config)}
+                  >
+                    <Text style={[styles.presetChipText, selected ? styles.presetChipTextActive : undefined]}>
+                      {preset.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
         ) : null}
 
@@ -421,6 +481,95 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 8,
+  },
+  simulatorHint: {
+    color: Colors.textMuted,
+    fontSize: 12,
+    lineHeight: 17,
+    marginBottom: 8,
+  },
+  metricRow: {
+    marginBottom: 8,
+  },
+  metricLabel: {
+    color: Colors.textMuted,
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  metricControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  metricBtn: {
+    borderWidth: 1,
+    borderColor: Colors.surfaceHighlight,
+    backgroundColor: '#0b1220',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  metricBtnText: {
+    color: Colors.text,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  metricValue: {
+    color: Colors.text,
+    fontSize: 13,
+    fontWeight: '800',
+    minWidth: 70,
+  },
+  deviceChipRow: {
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  deviceChip: {
+    borderWidth: 1,
+    borderColor: Colors.surfaceHighlight,
+    backgroundColor: '#0b1220',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  deviceChipActive: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primary,
+  },
+  deviceChipText: {
+    color: Colors.text,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  deviceChipTextActive: {
+    color: '#FFF',
+  },
+  presetRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  presetChip: {
+    borderWidth: 1,
+    borderColor: Colors.surfaceHighlight,
+    backgroundColor: '#0b1220',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  presetChipActive: {
+    borderColor: Colors.success,
+    backgroundColor: Colors.success,
+  },
+  presetChipText: {
+    color: Colors.text,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  presetChipTextActive: {
+    color: '#00110a',
   },
   value: {
     color: Colors.text,
