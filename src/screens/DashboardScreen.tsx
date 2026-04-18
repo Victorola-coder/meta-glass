@@ -8,7 +8,7 @@ import type {
   WearableSimulatorConfig,
   WearableTriggerType,
 } from '../wearable/WearableBridge';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 type Props = { wearableState: WearableDerivedState };
 
@@ -226,7 +226,12 @@ export default function DashboardScreen({ wearableState }: Props) {
   const canTrigger = connectionState === 'connected' && !isProcessing;
 
   return (
-    <View style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.scrollContent}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator
+    >
       <StatusBar style="light" backgroundColor={Colors.background} />
 
       {/* PHONE UI SECTION */}
@@ -417,7 +422,7 @@ export default function DashboardScreen({ wearableState }: Props) {
           </View>
         </View>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -426,8 +431,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 28,
+  },
   sectionContainer: {
-    flex: 1,
     paddingHorizontal: 20,
     paddingTop: 22,
     paddingBottom: 18,
@@ -630,7 +638,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   hudScreen: {
-    flex: 1,
+    minHeight: 200,
     backgroundColor: Colors.hudBackground,
     borderWidth: 2,
     borderColor: Colors.surfaceHighlight,
